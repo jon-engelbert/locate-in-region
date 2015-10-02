@@ -1,18 +1,4 @@
 #lang racket
-(provide (all-defined-out))
-(define (my-+ a b)
-  (if (zero? a)
-      b
-      (my-+ (sub1 a) (add1 b))))
- 
-(define (my-* a b)
-  (if (zero? a)
-      b
-      (my-* (sub1 a) (my-+ b b))))
- 
-(provide my-+
-         my-*)
-
 (struct point (x y) #:inspector #f)
 
 (define in-file-name "/Users/jonengelbert/projects/locate-in-region/points.txt")
@@ -128,26 +114,15 @@
   (close-output-port out)
   )
 
-(define (is-left v0 v1 p)
-  (> (-(*(-(first v1)(first v0)) (-(second p)(second v0)))  (*(-(first p)(first v0)) (-(second v1)(second v0)))) 0)
+(define (is-left p0 p1 p2)
+  (((first p1)-(first p0)) * ((second p2)-(second p0)) - ((first p2)-(first p0)) * ((second p1)-(second p0)) > 0)
   )
 
-(define (is-right v0 v1 p)
-  (< (-(*(-(first v1)(first v0)) (-(second p)(second v0)))  (*(-(first p)(first v0)) (-(second v1)(second v0)))) 0)
+(define (is-right p0 p1 p2)
+  (((first p1)-(first p0)) * ((second p2)-(second p0)) - ((first p2)-(first p0)) * ((second p1)-(second p0)) < 0)
   )
 
-(define (cross-up v0 v1 p)
-  (and (<= (second v0) (second p))
-       (> (second v1)  (second p))
-       )
-  )
-
-(define (cross-down v0 v1 p)
-  (and (> (second v0) (second p))
-       (<= (second v1)  (second p))
-       )
-  )
-
+;(define (cross-up P, 
 
 
 (define (wn_PnPoly P v-list)
@@ -162,18 +137,17 @@
                  (if (is-left P (first edge) (last edge))
                      (set! wn (+ 1 wn))
                      #f)
-                 (if (cross-down P edge)
-                     (if (is-right P (first edge) (last edge))
-                         (set! wn (- 1 wn))
-                         #f)
+                 #f)
+             (if (cross-down P edge)
+                 (if (is-right P (first edge) (last edge))
+                     (set! wn (- 1 wn))
                      #f)
-                 )
+                 #f)
          )
        ]
       )
     (set! v-prev v)
     )
-  wn
   )
 
 
@@ -185,11 +159,11 @@
 ;  (list region-names pts)
 ;)
 
-;(define (points->file name-points file)
-;  (display-lines-to-file name-points
-;                         file
-;                         #:exists 'replace
-;                         #:mode 'text))
+(define (points->file name-points file)
+  (display-lines-to-file name-points
+                         file
+                         #:exists 'replace
+                         #:mode 'text))
 
 ;(define class-points (list))
 (define regions (read-regions region-file-name-small))
