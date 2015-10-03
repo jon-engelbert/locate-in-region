@@ -1,17 +1,5 @@
 #lang racket
 (provide (all-defined-out))
-(define (my-+ a b)
-  (if (zero? a)
-      b
-      (my-+ (sub1 a) (add1 b))))
- 
-(define (my-* a b)
-  (if (zero? a)
-      b
-      (my-* (sub1 a) (my-+ b b))))
- 
-(provide my-+
-         my-*)
 
 (struct point (x y) #:inspector #f)
 
@@ -79,16 +67,9 @@
     (if (regexp-match #rx".*:" l)
         (
          begin
-          ;          (print "region-point-strs: ")
-          ;          (if (not (null? region-point-strs))
-          ;              (println (first region-point-strs))
-          ;              #f)
           (if (not (null? region-point-strs))
               (begin
-                ;                (print "region-point-strs")
-                ;                (println region-name)
-                ;                (println (first region-point-strs))
-                (hash-set! regions region-name (process-region-points region-point-strs))
+                (hash-set! regions (string-trim region-name) (process-region-points region-point-strs))
                 )
               #f)
           (set! region-name (first (regexp-split #rx":" (first (regexp-match #rx".*:" l)))))
@@ -98,22 +79,19 @@
             (
              begin
               (set! pt-str (regexp-match #rx".*,.*" l))
-              ;         (print "line, pt-str: " )
-              ;         (println l)
-              ;         (println pt-str)
               (set! region-point-strs
                     (if (not (eq? pt-str #f))
                         (cons (first pt-str) region-point-strs)
                         (list)
                         )
                     )
-              ;              (if (not (null? region-point-strs))
-              ;                 (println (first region-point-strs))
-              ;                #f)
               )
             #f)
         )
     )
+  (if (not (null? region-point-strs))
+      (hash-set! regions (string-trim region-name) (process-region-points region-point-strs))
+      #f)
   regions
   )
 
@@ -148,33 +126,100 @@
        )
   )
 
-
+(define (accumulate_wn_for_edge edge P wn)
+  (if (cross-up (first edge) (last edge) P)
+      (if (is-left (first edge) (last edge) P)
+          (set! wn (+ 1 wn))
+          #f)
+      (if (cross-down (first edge) (last edge) P)
+          (if (is-right (first edge) (last edge) P)
+              (set! wn (- 1 wn))
+              #f)
+          #f)
+      )
+  wn)
 
 (define (wn_PnPoly P v-list)
   (define wn 0)
   (define v-prev #f)
   (for ([v v-list])
     (cond
-      [(not v-prev) #f]
+      [(not v-prev)
+       (let ([edge (list (last v-list) v)])
+         (set! wn (accumulate_wn_for_edge edge P wn))
+         )
+       ]
+
       [else
-       (let ([edge (list v v-prev)])
-             (if (cross-up P (first edge) (last edge))
-                 (if (is-left P (first edge) (last edge))
-                     (set! wn (+ 1 wn))
-                     #f)
-                 (if (cross-down P edge)
-                     (if (is-right P (first edge) (last edge))
-                         (set! wn (- 1 wn))
-                         #f)
-                     #f)
-                 )
+       (let ([edge (list v-prev v)])
+         (set! wn (accumulate_wn_for_edge edge P wn))
          )
        ]
       )
     (set! v-prev v)
     )
+  ;(print "wn: ")
+  ;(println wn)
   wn
   )
+
+(define (point-in-region-polygon p region-points)
+   (odd? (wn_PnPoly p region-points))
+  )
+
+(define (point-in-region-by-name p regions region-name)
+  (odd? (wn_PnPoly p (hash-ref regions region-name)))
+  )
+
+(define (find-enclosing-region-stub pt-in regions)
+  #t
+  )
+
+(define (find-enclosing-region pt-in regions)
+  (define solution "")
+  (for ([(region-name region-points) regions])
+          (begin
+            ;(print "region-name:")
+            ;(println region-name)
+            (if (point-in-region-polygon pt-in region-points)
+                (begin
+                  ;(print "solution: ")
+                  ;(print pt-in)
+                  ;(println region-name)
+                  (set! solution region-name)
+                  )
+                #f)
+            )
+          )
+  solution
+  )
+
+(define (solve-enclosing-regions point-file-name region-file-name)
+  (define points-in (last (read-classification-points point-file-name)))
+  (define regions (read-regions region-file-name))
+  (define solution-set (list))
+  (define solution "")
+  (for ([pt-in points-in])
+    (begin
+      ;(print "pt-in")
+      ;(println pt-in)
+      (set! solution "")
+      (for ([(region-name region-points) regions])
+        ;(print "region: ")
+        ;(println region-name)
+        ;(println region-points)
+        (if (point-in-region-polygon pt-in region-points)
+            (begin
+              (set! solution region-name); what if the solution already was found... then two regions that the point is in.
+              )
+            #f)
+        )
+      (set! solution-set (cons solution solution-set))
+      )
+    )
+  (reverse solution-set)
+  )
+  
 
 
 ;  (define region-names (filter (lambda (l) (regexp-match #rx".*:" l)) lines))
@@ -192,8 +237,12 @@
 ;                         #:mode 'text))
 
 ;(define class-points (list))
-(define regions (read-regions region-file-name-small))
+(define regions (read-regions region-file-name))
 ;(read-classification-points in-file-name)
 (define class-points (read-classification-points in-file-name))
 (write-classification-points (first class-points) (last class-points) out-file-name)
 (write-regions regions test-region-out-file-name)
+(define pt-in (list -85.646282 42.912051))
+;(point-in-region (list -85.646282 42.912051) regions " Alger Heights")
+;(point-in-region (list -85.646282 42.912051) regions " Baxter")
+(solve-enclosing-regions in-file-name region-file-name)

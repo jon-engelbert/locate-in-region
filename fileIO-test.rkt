@@ -90,12 +90,69 @@
     (check-equal? class-points class-points2)
     )
 
+   ;   (test-case
+   ;   "read/write regions"
+   ;  (define regions (read-regions region-file-name-small))
+   ; (write-regions regions test-region-out-file-name)
+   ;(define regions2 (read-regions test-region-out-file-name))
+   ;(check-equal? regions regions2)
+   ;)
+   
    (test-case
-    "read/write regions"
-    (define regions (read-regions region-file-name-small))
-    (write-regions regions test-region-out-file-name)
-    (define regions2 (read-regions test-region-out-file-name))
-    (check-equal? regions regions2)
+    "point in region pass1"
+    (define regions (read-regions region-file-name))
+    (check-true (point-in-region-by-name (list -85.646282 42.912051) regions "ken-O-Sha Park"))
+    )
+   
+   (test-case
+    "point in region pass2"
+    (define regions (read-regions region-file-name))
+    (check-true (point-in-region-by-name (list -85.646726 42.913097) regions "Alger Heights"))
+    )
+   
+   (test-case
+    "point in region pass3"
+    (define regions (read-regions region-file-name))
+    (check-true (point-in-region-by-name (list -85.658789 42.951338) regions "Southeast Community"))
+    )
+
+   (test-case
+    "find enclosing region"
+        (define regions (read-regions region-file-name))
+        (define pt-in (list -85.646282 42.912051))
+        (check-equal? (find-enclosing-region pt-in regions) "ken-O-Sha Park" )
+        )
+
+   (test-case
+    "find enclosing regionII"
+        (define regions (read-regions region-file-name))
+        (check-equal? (find-enclosing-region (list -85.646726 42.913097) regions) "Alger Heights" )
+        )
+
+   
+   (test-case
+    "all tests"
+    (define points-in (last (read-classification-points in-file-name)))
+    (define regions (read-regions region-file-name))
+    (define solution "")
+    (for ([pt-in points-in])
+      (begin
+        ;(print "pt-in")
+        ;(println pt-in)
+        (for ([(region-name region-points) regions])
+          ;(print "region: ")
+          ;(println region-name)
+          ;(println region-points)
+          (if (point-in-region-polygon pt-in region-points)
+              (begin
+                (set! solution region-name)
+                )
+              #f)
+          )
+        
+        )
+      )
+    solution
     )
    )
   )
