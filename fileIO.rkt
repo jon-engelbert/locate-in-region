@@ -3,11 +3,11 @@
 
 (struct point (x y) #:inspector #f)
 
-(define in-file-name "/Users/jonengelbert/projects/locate-in-region/points.txt")
-(define out-file-name "/Users/jonengelbert/projects/locate-in-region/points-out.txt")
-(define region-file-name "/Users/jonengelbert/projects/locate-in-region/region-definitions.txt")
-(define region-file-name-small "/Users/jonengelbert/projects/locate-in-region/region-def-small.txt")
-(define test-region-out-file-name "/Users/jonengelbert/projects/locate-in-region/region-definitions-out.txt")
+(define in-file-name "points.txt")
+(define out-file-name "points-out.txt")
+(define soln-file-name "solution.txt")
+(define region-file-name "region-definitions.txt")
+(define test-region-out-file-name "region-definitions-out.txt")
 ;(define in (open-input-file in-file-name))
 ;(define out (open-output-file out-file-name #:exists 'replace))
 ;(define loc-names '())
@@ -26,7 +26,22 @@
 (define (write-classification-points pt-names points out-file-name)
   (define out (open-output-file out-file-name #:exists 'replace))
   (for ([name pt-names][pt points])
-    (fprintf out "~a: ~a,~a\n" name (first pt) (last pt))
+    (begin
+      (fprintf out "~a: ~a,~a\n" name (first pt) (last pt))
+      )
+    )
+  (close-output-port out)
+  )
+  
+(define (write-solutions pt-names regions out-file-name)
+  (define out (open-output-file out-file-name #:exists 'replace))
+  (for ([name pt-names][rgn regions])
+    (begin
+      (print "name: ")
+      (println name)
+      (println rgn)
+      (fprintf out "~a: ~a\n" name rgn)
+      )
     )
   (close-output-port out)
   )
@@ -194,8 +209,9 @@
   solution
   )
 
-(define (solve-enclosing-regions point-file-name region-file-name)
+(define (solve-enclosing-regions point-file-name region-file-name )
   (define points-in (last (read-classification-points point-file-name)))
+  (define pt-names (first (read-classification-points point-file-name)))
   (define regions (read-regions region-file-name))
   (define solution-set (list))
   (define solution "")
@@ -219,30 +235,16 @@
     )
   (reverse solution-set)
   )
-  
 
 
-;  (define region-names (filter (lambda (l) (regexp-match #rx".*:" l)) lines))
-;  (define region-value-pairs (filter (lambda (l) (regexp-match #rx".*,.*" l)) lines))
-;  (define pts (map (lambda (pt-str) (list
-;                                     (string->number (string-trim (first (regexp-split #rx"," pt-str))))
-;                                   (string->number (string-trim (second (regexp-split #rx"," pt-str))))))  region-value-pairs))
-;  (list region-names pts)
-;)
 
-;(define (points->file name-points file)
-;  (display-lines-to-file name-points
-;                         file
-;                         #:exists 'replace
-;                         #:mode 'text))
+;(define regions (read-regions region-file-name))
+;(write-classification-points (first class-points) (last class-points) out-file-name)
+;(write-regions regions test-region-out-file-name)
+;(define pt-in (list -85.646282 42.912051))
 
-;(define class-points (list))
-(define regions (read-regions region-file-name))
-;(read-classification-points in-file-name)
 (define class-points (read-classification-points in-file-name))
-(write-classification-points (first class-points) (last class-points) out-file-name)
-(write-regions regions test-region-out-file-name)
-(define pt-in (list -85.646282 42.912051))
-;(point-in-region (list -85.646282 42.912051) regions " Alger Heights")
-;(point-in-region (list -85.646282 42.912051) regions " Baxter")
-(solve-enclosing-regions in-file-name region-file-name)
+(write-solutions
+ (first class-points)
+ (solve-enclosing-regions in-file-name region-file-name)
+ soln-file-name)
